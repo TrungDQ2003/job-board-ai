@@ -2,7 +2,7 @@ import { db } from "@/drizzle/db"
 import { InterviewTable, JobInfoTable } from "@/drizzle/schema"
 import { getCurrentUser } from "@/services/clerk/lib/getCurrentUser"
 import { hasPermission } from "@/services/clerk/lib/hasPermission"
-import { and, count, eq, isNotNull } from "drizzle-orm"
+import { and, count, eq, isNotNull, or } from "drizzle-orm"
 
 export async function canCreateInterview() {
   return true
@@ -21,7 +21,13 @@ async function getInterviewCount(userId: string) {
     .from(InterviewTable)
     .innerJoin(JobInfoTable, eq(InterviewTable.jobInfoId, JobInfoTable.id))
     .where(
-      and(eq(JobInfoTable.userId, userId), isNotNull(InterviewTable.humeChatId))
+      and(
+        eq(JobInfoTable.userId, userId),
+        or(
+          isNotNull(InterviewTable.humeChatId),
+          isNotNull(InterviewTable.messagesJson)
+        )
+      )
     )
 
   return c

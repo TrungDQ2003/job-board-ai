@@ -41,7 +41,9 @@ export function LanguageProvider({
 
   // Nested translation helper (e.g. t("nav.jobBoard"))
   const t = (keyPath: string): string => {
+    if (!keyPath) return ""
     const keys = keyPath.split(".")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let current: any = translations[language]
 
     for (const key of keys) {

@@ -25,6 +25,7 @@ import { condenseChatMessages } from "@/services/hume/lib/condenseChatMessages"
 import { fetchChatMessages } from "@/services/hume/lib/api"
 import { ActionButton } from "@/components/ui/action-button"
 import { generateInterviewFeedback } from "@/features/interviews/actions"
+import { getServerTranslation } from "@/lib/i18n/getServerTranslation"
 
 export default async function InterviewPage({
   params,
@@ -32,6 +33,7 @@ export default async function InterviewPage({
   params: Promise<{ jobInfoId: string; interviewId: string }>
 }) {
   const { jobInfoId, interviewId } = await params
+  const { t } = await getServerTranslation()
 
   const interview = getCurrentUser().then(
     async ({ userId, redirectToSignIn }) => {
@@ -46,13 +48,13 @@ export default async function InterviewPage({
   return (
     <div className="container my-4 space-y-4">
       <BackLink href={`/app/job-infos/${jobInfoId}/interviews`}>
-        All Interviews
+        {t("interviewsPage.allInterviews")}
       </BackLink>
       <div className="space-y-6">
         <div className="flex gap-2 justify-between">
           <div className="space-y-2 mb-6">
             <h1 className="text-3xl md:text-4xl">
-              Interview:{" "}
+              {t("interviewsPage.title")}:{" "}
               <SuspendedItem
                 item={interview}
                 fallback={<Skeleton className="w-48" />}
@@ -75,15 +77,15 @@ export default async function InterviewPage({
                 <ActionButton
                   action={generateInterviewFeedback.bind(null, i.id)}
                 >
-                  Generate Feedback
+                  {t("interviewsPage.generateFeedback")}
                 </ActionButton>
               ) : (
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button>View Feedback</Button>
+                    <Button>{t("interviewsPage.viewFeedback")}</Button>
                   </DialogTrigger>
                   <DialogContent className="md:max-w-3xl lg:max-w-4xl max-h-[calc(100%-2rem)] overflow-y-auto flex flex-col">
-                    <DialogTitle>Feedback</DialogTitle>
+                    <DialogTitle>{t("interviewsPage.feedback")}</DialogTitle>
                     <MarkdownRenderer>{i.feedback}</MarkdownRenderer>
                   </DialogContent>
                 </Dialog>
@@ -104,16 +106,31 @@ export default async function InterviewPage({
 async function Messages({
   interview,
 }: {
-  interview: Promise<{ humeChatId: string | null }>
+  interview: Promise<{ humeChatId: string | null; messagesJson: string | null }>
 }) {
   const { user, redirectToSignIn } = await getCurrentUser({ allData: true })
   if (user == null) return redirectToSignIn()
-  const { humeChatId } = await interview
-  if (humeChatId == null) return notFound()
+  const { humeChatId, messagesJson } = await interview
 
-  const condensedMessages = condenseChatMessages(
-    await fetchChatMessages(humeChatId)
-  )
+  let chatMessages: any[] = []
+
+  if (messagesJson != null) {
+    try {
+      const localMessages = JSON.parse(messagesJson)
+      chatMessages = localMessages.map((m: any) => ({
+        type: m.role === "user" ? "USER_MESSAGE" : "AGENT_MESSAGE",
+        messageText: m.text,
+      }))
+    } catch (e) {
+      console.error("Failed to parse local messages", e)
+    }
+  } else if (humeChatId != null) {
+    chatMessages = await fetchChatMessages(humeChatId)
+  } else {
+    return notFound()
+  }
+
+  const condensedMessages = condenseChatMessages(chatMessages)
 
   return (
     <CondensedMessages

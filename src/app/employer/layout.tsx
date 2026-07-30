@@ -23,7 +23,7 @@ import { SidebarOrganizationButton } from "@/features/organizations/components/S
 import { getCurrentOrganization } from "@/services/clerk/lib/getCurrentAuth"
 import { hasOrgUserPermission } from "@/services/clerk/lib/orgUserPermissions"
 import { count, desc, eq } from "drizzle-orm"
-import { ClipboardListIcon, PlusIcon } from "lucide-react"
+import { ClipboardListIcon, PlusIcon, Sparkles, BrainCircuitIcon } from "lucide-react"
 import { cacheTag } from "next/dist/server/use-cache/cache-tag"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -69,6 +69,8 @@ async function LayoutSuspense({ children }: { children: ReactNode }) {
           <SidebarNavMenuGroup
             className="mt-auto"
             items={[
+              { href: "/app", icon: <Sparkles />, label: t("nav.interviewPrep") },
+              { href: "/ai-search", icon: <BrainCircuitIcon />, label: t("nav.aiSearch") },
               { href: "/", icon: <ClipboardListIcon />, label: t("employer.jobBoard") },
             ]}
           />

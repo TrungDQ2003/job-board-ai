@@ -28,6 +28,7 @@ const typeKeys: Record<JobListingType, string> = {
   "internship": "jobListings.internship"
 }
 const expKeys: Record<ExperienceLevel, string> = {
+  "no-experience": "jobListings.noExperience",
   "junior": "jobListings.junior",
   "mid-level": "jobListings.mid",
   "senior": "jobListings.senior"

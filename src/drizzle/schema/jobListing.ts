@@ -13,12 +13,13 @@ import { OrganizationTable } from "./organization"
 import { relations } from "drizzle-orm"
 import { JobListingApplicationTable } from "./jobListingApplication"
 
-export const wageIntervals = ["hourly", "yearly"] as const
+export const wageIntervals = ["hourly", "monthly", "yearly"] as const
 export type WageInterval = (typeof wageIntervals)[number]
 export const wageIntervalEnum = pgEnum(
   "job_listings_wage_interval",
   wageIntervals
 )
+
 
 export const locationRequirements = ["in-office", "hybrid", "remote"] as const
 export type LocationRequirement = (typeof locationRequirements)[number]

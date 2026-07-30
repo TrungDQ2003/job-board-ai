@@ -1,7 +1,9 @@
 import { getCurrentUser } from "@/services/clerk/lib/getCurrentUser"
 import { redirect } from "next/navigation"
 import { ReactNode, Suspense } from "react"
-import { Navbar } from "./_Navbar"
+import { AppSidebar } from "@/components/sidebar/AppSidebar"
+import { AppSidebarContentClient } from "./_AppSidebarContentClient"
+import { SidebarUserButton } from "@/features/users/components/SidebarUserButton"
 import { Loader2Icon } from "lucide-react"
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -25,9 +27,11 @@ async function LayoutSuspense({ children }: { children: ReactNode }) {
   if (user == null) return redirect("/onboarding")
 
   return (
-    <>
-      <Navbar user={user} />
+    <AppSidebar
+      content={<AppSidebarContentClient />}
+      footerButton={<SidebarUserButton />}
+    >
       {children}
-    </>
+    </AppSidebar>
   )
 }

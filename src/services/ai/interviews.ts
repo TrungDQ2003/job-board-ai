@@ -5,11 +5,13 @@ import { google } from "./models/google"
 
 export async function generateAiInterviewFeedback({
   humeChatId,
+  messagesJson,
   jobInfo,
   userName,
   language = "vi",
 }: {
-  humeChatId: string
+  humeChatId?: string | null
+  messagesJson?: string | null
   jobInfo: Pick<
     typeof JobInfoTable.$inferSelect,
     "title" | "description" | "experienceLevel"
@@ -17,24 +19,35 @@ export async function generateAiInterviewFeedback({
   userName: string
   language?: string
 }) {
-  const messages = await fetchChatMessages(humeChatId)
+  let formattedMessages: any[] = []
 
-  const formattedMessages = messages
-    .map(message => {
-      if (message.type !== "USER_MESSAGE" && message.type !== "AGENT_MESSAGE") {
-        return null
-      }
-      if (message.messageText == null) return null
+  if (messagesJson != null) {
+    try {
+      const localMessages = JSON.parse(messagesJson)
+      formattedMessages = localMessages.map((m: any) => ({
+        speaker: m.role === "user" ? "interviewee" : "interviewer",
+        text: m.text,
+      }))
+    } catch (e) {
+      console.error("Failed to parse messagesJson", e)
+    }
+  } else if (humeChatId != null) {
+    const messages = await fetchChatMessages(humeChatId)
+    formattedMessages = messages
+      .map(message => {
+        if (message.type !== "USER_MESSAGE" && message.type !== "AGENT_MESSAGE") {
+          return null
+        }
+        if (message.messageText == null) return null
 
-      return {
-        speaker:
-          message.type === "USER_MESSAGE" ? "interviewee" : "interviewer",
-        text: message.messageText,
-        emotionFeatures:
-          message.role === "USER" ? message.emotionFeatures : undefined,
-      }
-    })
-    .filter(f => f != null)
+        return {
+          speaker:
+            message.type === "USER_MESSAGE" ? "interviewee" : "interviewer",
+          text: message.messageText,
+        }
+      })
+      .filter(f => f != null)
+  }
 
   const { text } = await generateText({
     model: google("gemini-2.5-flash"),

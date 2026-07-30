@@ -11,6 +11,7 @@ import {
 import { AppSidebarClient } from "./_AppSidebarClient"
 import { ReactNode } from "react"
 import { auth } from "@clerk/nextjs/server"
+import Link from "next/link"
 
 import { LanguageToggle } from "@/components/LanguageToggle"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -33,7 +34,9 @@ export async function AppSidebar({
           <SidebarHeader className="flex-row items-center justify-between">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              <span className="text-xl text-nowrap font-bold">Landr</span>
+              <Link href="/" className="flex items-center gap-2">
+                <span className="text-xl text-nowrap font-bold hover:text-primary transition-colors cursor-pointer">Landr</span>
+              </Link>
             </div>
             <div className="group-data-[state=collapsed]:hidden mr-1 flex items-center gap-1">
               <LanguageToggle />

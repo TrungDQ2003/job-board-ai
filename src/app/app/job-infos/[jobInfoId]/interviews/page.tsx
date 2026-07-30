@@ -13,12 +13,15 @@ import { JobInfoBackLink } from "@/features/jobInfos/components/JobInfoBackLink"
 import { getJobInfoIdTag } from "@/features/jobInfos/dbCache"
 import { formatDateTime } from "@/lib/formatters"
 import { getCurrentUser } from "@/services/clerk/lib/getCurrentUser"
-import { and, desc, eq, isNotNull } from "drizzle-orm"
-import { ArrowRightIcon, Loader2Icon, PlusIcon } from "lucide-react"
+import { and, desc, eq, isNotNull, or } from "drizzle-orm"
+import { ArrowRightIcon, Loader2Icon, PlusIcon, TrashIcon } from "lucide-react"
 import { cacheTag } from "next/dist/server/use-cache/cache-tag"
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { ActionButton } from "@/components/ui/action-button"
+import { deleteInterview } from "@/features/interviews/actions"
 import { Suspense } from "react"
+import { getServerTranslation } from "@/lib/i18n/getServerTranslation"
 
 export default async function InterviewsPage({
   params,
@@ -43,6 +46,7 @@ export default async function InterviewsPage({
 async function SuspendedPage({ jobInfoId }: { jobInfoId: string }) {
   const { userId, redirectToSignIn } = await getCurrentUser()
   if (userId == null) return redirectToSignIn()
+  const { t } = await getServerTranslation()
 
   const interviews = await getInterviews(jobInfoId, userId)
   if (interviews.length === 0) {
@@ -51,11 +55,11 @@ async function SuspendedPage({ jobInfoId }: { jobInfoId: string }) {
   return (
     <div className="space-y-6 w-full">
       <div className="flex gap-2 justify-between">
-        <h1 className="text-3xl md:text-4xl lg:text-5xl">Interviews</h1>
+        <h1 className="text-3xl md:text-4xl lg:text-5xl">{t("interviewsPage.title")}</h1>
         <Button asChild>
           <Link href={`/app/job-infos/${jobInfoId}/interviews/new`}>
             <PlusIcon />
-            New Interview
+            {t("interviewsPage.newInterview")}
           </Link>
         </Button>
       </div>
@@ -68,30 +72,41 @@ async function SuspendedPage({ jobInfoId }: { jobInfoId: string }) {
           <Card className="h-full flex items-center justify-center border-dashed border-3 bg-transparent hover:border-primary/50 transition-colors shadow-none">
             <div className="text-lg flex items-center gap-2">
               <PlusIcon className="size-6" />
-              New Interview
+              {t("interviewsPage.newInterview")}
             </div>
           </Card>
         </Link>
         {interviews.map(interview => (
-          <Link
-            className="hover:scale-[1.02] transition-[transform_opacity]"
-            href={`/app/job-infos/${jobInfoId}/interviews/${interview.id}`}
-            key={interview.id}
-          >
-            <Card className="h-full">
-              <div className="flex items-center justify-between h-full">
-                <CardHeader className="gap-1 flex-grow">
-                  <CardTitle className="text-lg">
-                    {formatDateTime(interview.createdAt)}
-                  </CardTitle>
-                  <CardDescription>{interview.duration}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ArrowRightIcon className="size-6" />
-                </CardContent>
-              </div>
-            </Card>
-          </Link>
+          <div className="relative group hover:scale-[1.02] transition-[transform_opacity]" key={interview.id}>
+            <Link
+              className="block h-full"
+              href={`/app/job-infos/${jobInfoId}/interviews/${interview.id}`}
+            >
+              <Card className="h-full pr-16">
+                <div className="flex items-center justify-between h-full">
+                  <CardHeader className="gap-1 flex-grow">
+                    <CardTitle className="text-lg">
+                      {formatDateTime(interview.createdAt)}
+                    </CardTitle>
+                    <CardDescription>{interview.duration}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ArrowRightIcon className="size-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </CardContent>
+                </div>
+              </Card>
+            </Link>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10">
+              <ActionButton
+                action={deleteInterview.bind(null, interview.id)}
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:bg-destructive/10 rounded-full h-9 w-9"
+              >
+                <TrashIcon className="size-5" />
+              </ActionButton>
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -106,7 +121,10 @@ async function getInterviews(jobInfoId: string, userId: string) {
   const data = await db.query.InterviewTable.findMany({
     where: and(
       eq(InterviewTable.jobInfoId, jobInfoId),
-      isNotNull(InterviewTable.humeChatId)
+      or(
+        isNotNull(InterviewTable.humeChatId),
+        isNotNull(InterviewTable.messagesJson)
+      )
     ),
     with: { jobInfo: { columns: { userId: true } } },
     orderBy: desc(InterviewTable.updatedAt),

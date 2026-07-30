@@ -30,3 +30,14 @@ export async function updateInterview(
 
   return newInterview
 }
+
+export async function deleteInterview(id: string) {
+  const [deleted] = await db
+    .delete(InterviewTable)
+    .where(eq(InterviewTable.id, id))
+    .returning({ id: InterviewTable.id, jobInfoId: InterviewTable.jobInfoId })
+
+  revalidateInterviewCache(deleted)
+
+  return deleted
+}

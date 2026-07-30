@@ -7,13 +7,15 @@ import { getJobInfoIdTag } from "../jobInfos/dbCache"
 import { db } from "@/drizzle/db"
 import { and, eq } from "drizzle-orm"
 import { InterviewTable, JobInfoTable } from "@/drizzle/schema"
-import { insertInterview, updateInterview as updateInterviewDb } from "./db"
+import { insertInterview, updateInterview as updateInterviewDb, deleteInterview as deleteInterviewDb } from "./db"
 import { getInterviewIdTag } from "./dbCache"
 import { canCreateInterview } from "./permissions"
 import { PLAN_LIMIT_MESSAGE, RATE_LIMIT_MESSAGE } from "@/lib/errorToast"
 import { env } from "@/data/env/server"
 import arcjet, { tokenBucket, request } from "@arcjet/next"
 import { generateAiInterviewFeedback } from "@/services/ai/interviews"
+import { generateText } from "ai"
+import { google } from "@/services/ai/models/google"
 
 const aj = arcjet({
   characteristics: ["userId"],
@@ -78,6 +80,7 @@ export async function updateInterview(
   data: {
     humeChatId?: string
     duration?: string
+    messagesJson?: string
   }
 ) {
   const { userId } = await getCurrentUser()
@@ -101,6 +104,62 @@ export async function updateInterview(
   return { error: false }
 }
 
+export async function getNextInterviewResponse({
+  jobInfo,
+  messages,
+  language = "vi",
+}: {
+  jobInfo: {
+    title: string | null
+    description: string
+    experienceLevel: "no-experience" | "junior" | "mid" | "senior" | "lead"
+  }
+  messages: { role: "user" | "assistant"; text: string }[]
+  language?: string
+}) {
+  const { userId } = await getCurrentUser()
+  if (userId == null) {
+    return {
+      error: true,
+      message: "You don't have permission to do this",
+      text: ""
+    }
+  }
+
+  const conversation = messages.map(m => ({
+    role: m.role,
+    content: m.text,
+  }))
+
+  const systemPrompt = `You are a professional and friendly job interviewer. Your task is to conduct a mock interview with the candidate for the following role:
+  
+Job Title: ${jobInfo.title || "Not Specified"}
+Job Description: ${jobInfo.description}
+Experience Level: ${jobInfo.experienceLevel}
+
+Guidelines:
+- Act like a real interviewer. Be polite, professional, and conversational.
+- Ask ONE question at a time.
+- Make sure your questions are highly relevant to the job description and experience level.
+- Keep your questions and responses very concise (under 2-3 sentences max) to ensure natural flow.
+- Follow up on the candidate's previous responses if appropriate, or move on to the next question.
+- IMPORTANT: Since your responses will be read aloud by a Vietnamese text-to-speech reader, avoid using raw code symbols, colons, or markdown backticks inside code terms (e.g. write "display block" instead of "display: block" or "'display: block'"). Keep all technical terms in plain text.
+- IMPORTANT: You must interact entirely in ${language === "vi" ? "Vietnamese (Tiếng Việt)" : "English"}. Respond in ${language === "vi" ? "Vietnamese" : "English"}.`
+
+  try {
+    const { text } = await generateText({
+      model: google("gemini-2.5-flash"),
+      system: systemPrompt,
+      prompt: JSON.stringify(conversation),
+    })
+
+    return { error: false, text }
+  } catch (err) {
+    console.error(err)
+    return { error: true, message: "Failed to generate AI response", text: "" }
+  }
+}
+
 export async function generateInterviewFeedback(interviewId: string) {
   const { userId, user } = await getCurrentUser({ allData: true })
   if (userId == null || user == null) {
@@ -118,7 +177,7 @@ export async function generateInterviewFeedback(interviewId: string) {
     }
   }
 
-  if (interview.humeChatId == null) {
+  if (interview.humeChatId == null && interview.messagesJson == null) {
     return {
       error: true,
       message: "Interview has not been completed yet",
@@ -130,6 +189,7 @@ export async function generateInterviewFeedback(interviewId: string) {
 
   const feedback = await generateAiInterviewFeedback({
     humeChatId: interview.humeChatId,
+    messagesJson: interview.messagesJson,
     jobInfo: interview.jobInfo,
     userName: user.name,
     language,
@@ -143,6 +203,28 @@ export async function generateInterviewFeedback(interviewId: string) {
   }
 
   await updateInterviewDb(interviewId, { feedback })
+
+  return { error: false }
+}
+
+export async function deleteInterview(id: string) {
+  const { userId } = await getCurrentUser()
+  if (userId == null) {
+    return {
+      error: true,
+      message: "You don't have permission to do this",
+    }
+  }
+
+  const interview = await getInterview(id, userId)
+  if (interview == null) {
+    return {
+      error: true,
+      message: "You don't have permission to do this",
+    }
+  }
+
+  await deleteInterviewDb(id)
 
   return { error: false }
 }

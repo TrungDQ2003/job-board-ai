@@ -10,6 +10,8 @@ export function formatWageInterval(interval: WageInterval) {
   switch (interval) {
     case "hourly":
       return "Hour"
+    case "monthly":
+      return "Month"
     case "yearly":
       return "Year"
     default:
@@ -36,6 +38,8 @@ export function formatLocationRequirement(
 
 export function formatExperienceLevel(experienceLevel: ExperienceLevel) {
   switch (experienceLevel) {
+    case "no-experience":
+      return "No Experience"
     case "junior":
       return "Junior"
     case "mid-level":
@@ -85,6 +89,9 @@ export function formatWage(wage: number, wageInterval: WageInterval, language: s
   switch (wageInterval) {
     case "hourly": {
       return `${wageFormatter.format(wage)} / ${language === "vi" ? "giờ" : "hr"}`
+    }
+    case "monthly": {
+      return `${wageFormatter.format(wage)} / ${language === "vi" ? "tháng" : "mo"}`
     }
     case "yearly": {
       return `${wageFormatter.format(wage)} / ${language === "vi" ? "năm" : "yr"}`
