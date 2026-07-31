@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react"
 import { cacheTag } from "next/dist/server/use-cache/cache-tag"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
+import { getServerTranslation } from "@/lib/i18n/getServerTranslation"
 
 export default async function JobInfoNewPage({
   params,
@@ -18,12 +19,13 @@ export default async function JobInfoNewPage({
   params: Promise<{ jobInfoId: string }>
 }) {
   const { jobInfoId } = await params
+  const { t } = await getServerTranslation()
 
   return (
     <div className="container my-4 max-w-5xl space-y-4">
       <JobInfoBackLink jobInfoId={jobInfoId} />
 
-      <h1 className="text-3xl md:text-4xl">Edit Job Description</h1>
+      <h1 className="text-3xl md:text-4xl">{t("jobInfoForm.editTitle")}</h1>
 
       <Card>
         <CardContent>

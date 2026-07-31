@@ -2,12 +2,16 @@ import { BackLink } from "@/components/BackLink"
 import { Card, CardContent } from "@/components/ui/card"
 import { JobInfoForm } from "@/features/jobInfos/components/JobInfoForm"
 
-export default function JobInfoNewPage() {
+import { getServerTranslation } from "@/lib/i18n/getServerTranslation"
+
+export default async function JobInfoNewPage() {
+  const { t } = await getServerTranslation()
+
   return (
     <div className="container my-4 max-w-5xl space-y-4">
-      <BackLink href="/app">Dashboard</BackLink>
+      <BackLink href="/app">{t("nav.dashboard")}</BackLink>
 
-      <h1 className="text-3xl md:text-4xl">Create New Job Description</h1>
+      <h1 className="text-3xl md:text-4xl">{t("jobInfoForm.createTitle")}</h1>
 
       <Card>
         <CardContent>

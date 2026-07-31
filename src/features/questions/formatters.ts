@@ -1,13 +1,16 @@
 import { QuestionDifficulty } from "@/drizzle/schema"
 
-export function formatQuestionDifficulty(difficulty: QuestionDifficulty) {
+export function formatQuestionDifficulty(
+  difficulty: QuestionDifficulty,
+  t: (key: string) => string
+) {
   switch (difficulty) {
     case "easy":
-      return "Easy"
+      return t("questionsPage.easy")
     case "medium":
-      return "Medium"
+      return t("questionsPage.medium")
     case "hard":
-      return "Hard"
+      return t("questionsPage.hard")
     default:
       throw new Error(
         `Unknown question difficulty: ${difficulty satisfies never}`

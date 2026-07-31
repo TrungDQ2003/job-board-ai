@@ -108,14 +108,16 @@ export async function getNextInterviewResponse({
   jobInfo,
   messages,
   language = "vi",
+  questionLimit = 5,
 }: {
   jobInfo: {
     title: string | null
     description: string
-    experienceLevel: "no-experience" | "junior" | "mid" | "senior" | "lead"
+    experienceLevel: string
   }
   messages: { role: "user" | "assistant"; text: string }[]
   language?: string
+  questionLimit?: number
 }) {
   const { userId } = await getCurrentUser()
   if (userId == null) {
@@ -131,6 +133,9 @@ export async function getNextInterviewResponse({
     content: m.text,
   }))
 
+  const userAnswersCount = messages.filter(m => m.role === "user").length
+  const isLastTurn = userAnswersCount >= questionLimit
+
   const systemPrompt = `You are a professional and friendly job interviewer. Your task is to conduct a mock interview with the candidate for the following role:
   
 Job Title: ${jobInfo.title || "Not Specified"}
@@ -144,7 +149,12 @@ Guidelines:
 - Keep your questions and responses very concise (under 2-3 sentences max) to ensure natural flow.
 - Follow up on the candidate's previous responses if appropriate, or move on to the next question.
 - IMPORTANT: Since your responses will be read aloud by a Vietnamese text-to-speech reader, avoid using raw code symbols, colons, or markdown backticks inside code terms (e.g. write "display block" instead of "display: block" or "'display: block'"). Keep all technical terms in plain text.
-- IMPORTANT: You must interact entirely in ${language === "vi" ? "Vietnamese (Tiếng Việt)" : "English"}. Respond in ${language === "vi" ? "Vietnamese" : "English"}.`
+- IMPORTANT: You must interact entirely in ${language === "vi" ? "Vietnamese (Tiếng Việt)" : "English"}. Respond in ${language === "vi" ? "Vietnamese" : "English"}.
+${
+  isLastTurn
+    ? `- IMPORTANT: The candidate has completed all required questions. Do NOT ask any new questions. Instead, politely conclude the interview, thank the candidate for their time, and say goodbye.`
+    : `- IMPORTANT: You should ask a total of ${questionLimit} questions. This is question number ${userAnswersCount + 1}.`
+}`
 
   try {
     const { text } = await generateText({

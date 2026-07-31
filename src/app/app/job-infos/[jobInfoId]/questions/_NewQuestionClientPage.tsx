@@ -21,6 +21,7 @@ import { useMemo, useState } from "react"
 import { useCompletion } from "@ai-sdk/react"
 import { errorToast } from "@/lib/errorToast"
 import z from "zod"
+import { useLanguage } from "@/context/LanguageContext"
 
 type Status = "awaiting-answer" | "awaiting-difficulty" | "init"
 
@@ -29,6 +30,7 @@ export function NewQuestionClientPage({
 }: {
   jobInfo: Pick<typeof JobInfoTable.$inferSelect, "id" | "name" | "title">
 }) {
+  const { t } = useLanguage()
   const [status, setStatus] = useState<Status>("init")
   const [answer, setAnswer] = useState<string | null>(null)
 
@@ -81,6 +83,7 @@ export function NewQuestionClientPage({
           </BackLink>
         </div>
         <Controls
+          t={t}
           reset={() => {
             setStatus("init")
             setQuestion("")
@@ -108,6 +111,7 @@ export function NewQuestionClientPage({
         <div className="flex-grow hidden md:block" />
       </div>
       <QuestionContainer
+        t={t}
         question={question}
         feedback={feedback}
         answer={answer}
@@ -119,12 +123,14 @@ export function NewQuestionClientPage({
 }
 
 function QuestionContainer({
+  t,
   question,
   feedback,
   answer,
   status,
   setAnswer,
 }: {
+  t: (keyPath: string) => string
   question: string | null
   feedback: string | null
   answer: string | null
@@ -138,8 +144,8 @@ function QuestionContainer({
           <ResizablePanel id="question" defaultSize={25} minSize={5}>
             <ScrollArea className="h-full min-w-48 *:h-full">
               {status === "init" && question == null ? (
-                <p className="text-base md:text-lg flex items-center justify-center h-full p-6">
-                  Get started by selecting a question difficulty above.
+                <p className="text-base md:text-lg flex items-center justify-center h-full p-6 text-center text-muted-foreground">
+                  {t("questionsPage.startInstruction")}
                 </p>
               ) : (
                 question && (
@@ -171,7 +177,7 @@ function QuestionContainer({
             disabled={status !== "awaiting-answer"}
             onChange={e => setAnswer(e.target.value)}
             value={answer ?? ""}
-            placeholder="Type your answer here..."
+            placeholder={t("questionsPage.typePlaceholder")}
             className="w-full h-full resize-none border-none rounded-none focus-visible:ring focus-visible:ring-inset !text-base p-6"
           />
         </ScrollArea>
@@ -181,6 +187,7 @@ function QuestionContainer({
 }
 
 function Controls({
+  t,
   status,
   isLoading,
   disableAnswerButton,
@@ -188,6 +195,7 @@ function Controls({
   generateFeedback,
   reset,
 }: {
+  t: (keyPath: string) => string
   disableAnswerButton: boolean
   status: Status
   isLoading: boolean
@@ -205,14 +213,14 @@ function Controls({
             variant="outline"
             size="sm"
           >
-            <LoadingSwap isLoading={isLoading}>Skip</LoadingSwap>
+            <LoadingSwap isLoading={isLoading}>{t("questionsPage.skip")}</LoadingSwap>
           </Button>
           <Button
             onClick={generateFeedback}
             disabled={disableAnswerButton}
             size="sm"
           >
-            <LoadingSwap isLoading={isLoading}>Answer</LoadingSwap>
+            <LoadingSwap isLoading={isLoading}>{t("questionsPage.answer")}</LoadingSwap>
           </Button>
         </>
       ) : (
@@ -224,7 +232,7 @@ function Controls({
             onClick={() => generateQuestion(difficulty)}
           >
             <LoadingSwap isLoading={isLoading}>
-              {formatQuestionDifficulty(difficulty)}
+              {formatQuestionDifficulty(difficulty, t)}
             </LoadingSwap>
           </Button>
         ))

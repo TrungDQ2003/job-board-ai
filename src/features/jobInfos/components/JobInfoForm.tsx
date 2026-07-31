@@ -29,6 +29,7 @@ import { formatExperienceLevel } from "../lib/formatters"
 import { LoadingSwap } from "@/components/ui/loading-swap"
 import { createJobInfo, updateJobInfo } from "../actions"
 import { toast } from "sonner"
+import { useLanguage } from "@/context/LanguageContext"
 
 type JobInfoFormData = z.infer<typeof jobInfoSchema>
 
@@ -40,6 +41,7 @@ export function JobInfoForm({
     "id" | "name" | "title" | "description" | "experienceLevel"
   >
 }) {
+  const { t } = useLanguage()
   const form = useForm<JobInfoFormData>({
     resolver: zodResolver(jobInfoSchema),
     defaultValues: jobInfo ?? {
@@ -69,12 +71,12 @@ export function JobInfoForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>{t("jobInfoForm.nameLabel")}</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
               <FormDescription>
-                This name is displayed in the UI for easy identification.
+                {t("jobInfoForm.nameDesc")}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -87,7 +89,7 @@ export function JobInfoForm({
             name="title"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Job Title</FormLabel>
+                <FormLabel>{t("jobInfoForm.titleLabel")}</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -96,8 +98,7 @@ export function JobInfoForm({
                   />
                 </FormControl>
                 <FormDescription>
-                  Optional. Only enter if there is a specific job title you are
-                  applying for.
+                  {t("jobInfoForm.titleDesc")}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -109,7 +110,7 @@ export function JobInfoForm({
             name="experienceLevel"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Experience Level</FormLabel>
+                <FormLabel>{t("jobInfoForm.experienceLabel")}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
@@ -135,17 +136,19 @@ export function JobInfoForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t("jobInfoForm.descLabel")}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="A Next.js 15 and React 19 full stack web developer job that uses Drizzle ORM and Postgres for database management."
+                  placeholder={t("jobInfoForm.descPlaceholder")}
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                Be as specific as possible. The more information you provide,
-                the better the interviews will be.
+                {t("jobInfoForm.descDesc")}
               </FormDescription>
+              <div className="text-xs text-muted-foreground/80 mt-2 p-3 bg-secondary/30 rounded-lg border border-border/50 select-none">
+                {t("jobInfoForm.userGuideTip")}
+              </div>
               <FormMessage />
             </FormItem>
           )}
@@ -157,7 +160,7 @@ export function JobInfoForm({
           className="w-full"
         >
           <LoadingSwap isLoading={form.formState.isSubmitting}>
-            Save Job Information
+            {t("jobInfoForm.submitButton")}
           </LoadingSwap>
         </Button>
       </form>

@@ -38,6 +38,9 @@ export function StartCall({
   const [readyState, setReadyState] = useState<ReadyState>("IDLE")
   const [interviewId, setInterviewId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
+  const [questionLimit, setQuestionLimit] = useState<number>(5)
+  const [isCompleted, setIsCompleted] = useState<boolean>(false)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
   
   // Speech Recognition States
   const [isListening, setIsListening] = useState(false)
@@ -139,6 +142,20 @@ export function StartCall({
       }
       console.error("Speech recognition error", e.error, e)
       setIsListening(false)
+
+      if (e.error === "not-allowed") {
+        errorToast(
+          language === "vi"
+            ? "Trình duyệt bị từ chối quyền truy cập Micro. Vui lòng cấp quyền Micro để bắt đầu nói."
+            : "Microphone permission denied. Please grant access in your browser settings to speak."
+        )
+      } else if (e.error === "audio-capture") {
+        errorToast(
+          language === "vi"
+            ? "Không tìm thấy thiết bị thu âm (Microphone) hoặc thiết bị đang bị ứng dụng khác sử dụng."
+            : "No microphone found or the device is already in use by another application."
+        )
+      }
     }
 
     recognitionRef.current = rec
@@ -180,6 +197,11 @@ export function StartCall({
       updateVolume()
     } catch (e) {
       console.error("Failed to start microphone analyzer", e)
+      errorToast(
+        language === "vi"
+          ? "Không thể khởi động bộ phân tích âm thanh. Vui lòng kiểm tra lại thiết bị thu âm và cấp quyền truy cập."
+          : "Failed to start microphone analyzer. Please check your recording device and permissions."
+      )
     }
   }
 
@@ -238,7 +260,7 @@ export function StartCall({
   }
 
   // Text to Speech
-  const speakText = (text: string) => {
+  const speakText = (text: string, isLast = false, nextMessagesList?: Message[]) => {
     if (typeof window === "undefined") return
     window.speechSynthesis.cancel()
 
@@ -261,7 +283,11 @@ export function StartCall({
 
     utterance.onend = () => {
       setIsPlayingAiSpeech(false)
-      startListening()
+      if (isLast) {
+        handleEndCall(nextMessagesList)
+      } else {
+        startListening()
+      }
     }
 
     utterance.onerror = (e: any) => {
@@ -270,7 +296,11 @@ export function StartCall({
       }
       console.error("Speech synthesis error", e.error, e)
       setIsPlayingAiSpeech(false)
-      startListening()
+      if (isLast) {
+        handleEndCall(nextMessagesList)
+      } else {
+        startListening()
+      }
     }
 
     window.speechSynthesis.speak(utterance)
@@ -285,11 +315,15 @@ export function StartCall({
     const updatedMessages = [...messages, { role: "user" as const, text: userSpeech }]
     setMessages(updatedMessages)
 
+    const userAnswersCount = updatedMessages.filter(m => m.role === "user").length
+    const isNextLast = userAnswersCount >= questionLimit
+
     setIsAiLoading(true)
     const res = await getNextInterviewResponse({
       jobInfo,
       messages: updatedMessages,
       language,
+      questionLimit,
     })
     setIsAiLoading(false)
 
@@ -302,7 +336,12 @@ export function StartCall({
     const nextMessages = [...updatedMessages, { role: "assistant" as const, text: res.text }]
     setMessages(nextMessages)
 
-    speakText(res.text)
+    if (isNextLast) {
+      setIsCompleted(true)
+      speakText(res.text, true, nextMessages)
+    } else {
+      speakText(res.text)
+    }
   }
 
   // Watch for Speech Recognition completion
@@ -329,6 +368,7 @@ export function StartCall({
       jobInfo,
       messages: [],
       language,
+      questionLimit,
     })
     setIsAiLoading(false)
 
@@ -343,17 +383,19 @@ export function StartCall({
   }
 
   // End Interview call
-  const handleEndCall = async () => {
+  const handleEndCall = async (finalMessagesList?: Message[]) => {
     if (typeof window !== "undefined") {
       window.speechSynthesis.cancel()
     }
     stopListening()
     stopAnalyzer()
+    setIsSaving(true)
 
+    const msgsToSave = finalMessagesList || messages
     if (interviewId != null) {
       await updateInterview(interviewId, {
         duration: callDurationTimestamp,
-        messagesJson: JSON.stringify(messages),
+        messagesJson: JSON.stringify(msgsToSave),
       })
       router.push(`/app/job-infos/${jobInfo.id}/interviews/${interviewId}`)
     } else {
@@ -398,11 +440,95 @@ export function StartCall({
     return condenseChatMessages(humeFormattedMessages)
   }, [humeFormattedMessages])
 
+  // Render Saving / Completion Screen
+  if (isSaving) {
+    return (
+      <div className="h-screen-header flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2Icon className="animate-spin size-24 text-primary" />
+          <span className="text-muted-foreground text-lg animate-pulse text-center px-4">
+            {t("interviewsPage.completionMessage")}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   // Render Idle Screen
   if (readyState === "IDLE") {
     return (
-      <div className="flex justify-center items-center h-screen-header">
-        <Button size="lg" onClick={handleStartInterview}>
+      <div className="flex flex-col items-center justify-center h-screen-header gap-8 px-4 w-full max-w-4xl mx-auto">
+        <div className="text-center space-y-3">
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent sm:text-4xl">
+            {t("interviewsPage.newInterview")}
+          </h2>
+          <p className="text-muted-foreground text-base max-w-lg">
+            {t("interviewsPage.selectLength")}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+          {/* Short Card */}
+          <button
+            type="button"
+            onClick={() => setQuestionLimit(3)}
+            className={`flex flex-col p-5 rounded-2xl border text-left transition-all duration-300 hover:shadow-md cursor-pointer ${
+              questionLimit === 3
+                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                : "border-border bg-card hover:bg-accent/40"
+            }`}
+          >
+            <span className="font-semibold text-lg text-foreground mb-1">
+              {t("interviewsPage.lengthShortTitle")}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t("interviewsPage.lengthShortDesc")}
+            </span>
+          </button>
+
+          {/* Medium Card */}
+          <button
+            type="button"
+            onClick={() => setQuestionLimit(5)}
+            className={`flex flex-col p-5 rounded-2xl border text-left transition-all duration-300 hover:shadow-md cursor-pointer ${
+              questionLimit === 5
+                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                : "border-border bg-card hover:bg-accent/40"
+            }`}
+          >
+            <div className="flex justify-between items-start mb-1 w-full">
+              <span className="font-semibold text-lg text-foreground">
+                {t("interviewsPage.lengthMediumTitle")}
+              </span>
+              <span className="bg-primary/20 text-primary text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase">
+                {language === "vi" ? "Đề xuất" : "Rec"}
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {t("interviewsPage.lengthMediumDesc")}
+            </span>
+          </button>
+
+          {/* Long Card */}
+          <button
+            type="button"
+            onClick={() => setQuestionLimit(10)}
+            className={`flex flex-col p-5 rounded-2xl border text-left transition-all duration-300 hover:shadow-md cursor-pointer ${
+              questionLimit === 10
+                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                : "border-border bg-card hover:bg-accent/40"
+            }`}
+          >
+            <span className="font-semibold text-lg text-foreground mb-1">
+              {t("interviewsPage.lengthLongTitle")}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t("interviewsPage.lengthLongDesc")}
+            </span>
+          </button>
+        </div>
+
+        <Button size="lg" className="h-12 px-8 text-base shadow-md hover:shadow-lg transition-shadow mt-4" onClick={handleStartInterview}>
           {t("interviewsPage.startInterview")}
         </Button>
       </div>
@@ -426,6 +552,17 @@ export function StartCall({
   // Render Active Interview Room
   return (
     <div className="overflow-y-auto h-screen-header flex flex-col justify-between pb-4">
+      {/* Header showing progress */}
+      <div className="border-b border-border bg-card/50 px-4 py-2 flex justify-between items-center text-sm font-medium text-muted-foreground select-none shrink-0">
+        <span className="truncate max-w-[60%] font-semibold text-foreground">
+          {jobInfo.title || "Mock Interview"}
+        </span>
+        <span className="bg-muted px-2 py-0.5 rounded-md font-mono text-xs">
+          {language === "vi"
+            ? `Câu hỏi ${Math.min(questionLimit, messages.filter(m => m.role === "user").length + 1)} / ${questionLimit}`
+            : `Question ${Math.min(questionLimit, messages.filter(m => m.role === "user").length + 1)} of ${questionLimit}`}
+        </span>
+      </div>
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="container flex flex-col items-center gap-4 max-w-5xl">
@@ -437,6 +574,11 @@ export function StartCall({
           />
           <div ref={messagesEndRef} />
         </div>
+      </div>
+
+      {/* Tip for answer length */}
+      <div className="text-center text-xs text-muted-foreground/80 px-4 mb-3 max-w-xl mx-auto select-none">
+        {t("interviewsPage.answerTip")}
       </div>
 
       {/* Manual text input option */}
@@ -504,7 +646,7 @@ export function StartCall({
             variant="ghost"
             size="icon"
             className="-mx-3 rounded-full hover:bg-destructive/10"
-            onClick={handleEndCall}
+            onClick={() => handleEndCall()}
           >
             <PhoneOffIcon className="text-destructive size-5" />
             <span className="sr-only">End Call</span>
