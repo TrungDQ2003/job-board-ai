@@ -2,26 +2,88 @@ import { db } from "@/drizzle/db"
 import { OrganizationTable, UserTable } from "@/drizzle/schema"
 import { getOrganizationIdTag } from "@/features/organizations/db/cache/organizations"
 import { getUserIdTag } from "@/features/users/db/cache/users"
-import { auth } from "@clerk/nextjs/server"
+import { auth, clerkClient } from "@clerk/nextjs/server"
 import { eq } from "drizzle-orm"
 import { cacheTag } from "next/dist/server/use-cache/cache-tag"
 
 export async function getCurrentUser({ allData = false } = {}) {
   const { userId } = await auth()
 
+  let user = undefined
+  if (allData && userId != null) {
+    user = await getUser(userId)
+    if (user == null) {
+      try {
+        const client = await clerkClient()
+        const clerkUser = await client.users.getUser(userId)
+        if (clerkUser != null) {
+          const email = clerkUser.emailAddresses.find(
+            e => e.id === clerkUser.primaryEmailAddressId
+          )?.emailAddress
+          if (email != null) {
+            const { insertUser } = await import("@/features/users/db/users")
+            await insertUser({
+              id: userId,
+              name: `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() || "User",
+              imageUrl: clerkUser.imageUrl,
+              email: email,
+              createdAt: new Date(clerkUser.createdAt),
+              updatedAt: new Date(clerkUser.updatedAt),
+            })
+            const { insertUserNotificationSettings } = await import("@/features/users/db/userNotificationSettings")
+            await insertUserNotificationSettings({ userId })
+            user = await getUser(userId)
+          }
+        }
+      } catch (e) {
+        console.error("Clerk user sync error:", e)
+      }
+    }
+  }
+
   return {
     userId,
-    user: allData && userId != null ? await getUser(userId) : undefined,
+    user,
   }
 }
 
 export async function getCurrentOrganization({ allData = false } = {}) {
-  const { orgId } = await auth()
+  const { orgId, userId } = await auth()
+
+  let organization = undefined
+  if (allData && orgId != null) {
+    organization = await getOrganization(orgId)
+    if (organization == null) {
+      try {
+        const client = await clerkClient()
+        const clerkOrg = await client.organizations.getOrganization({ organizationId: orgId })
+        if (clerkOrg != null) {
+          const { insertOrganization } = await import("@/features/organizations/db/organizations")
+          await insertOrganization({
+            id: orgId,
+            name: clerkOrg.name,
+            imageUrl: clerkOrg.imageUrl,
+            createdAt: new Date(clerkOrg.createdAt),
+            updatedAt: new Date(clerkOrg.updatedAt),
+          })
+          if (userId != null) {
+            const { insertOrganizationUserSettings } = await import("@/features/organizations/db/organizationUserSettings")
+            await insertOrganizationUserSettings({
+              userId,
+              organizationId: orgId,
+            })
+          }
+          organization = await getOrganization(orgId)
+        }
+      } catch (e) {
+        console.error("Clerk organization sync error:", e)
+      }
+    }
+  }
 
   return {
     orgId,
-    organization:
-      allData && orgId != null ? await getOrganization(orgId) : undefined,
+    organization,
   }
 }
 
@@ -42,3 +104,4 @@ async function getOrganization(id: string) {
     where: eq(OrganizationTable.id, id),
   })
 }
+

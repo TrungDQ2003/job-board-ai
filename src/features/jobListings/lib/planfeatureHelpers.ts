@@ -12,11 +12,22 @@ export async function hasReachedMaxPublishedJobListings() {
 
   const count = await getPublishedJobListingsCount(orgId)
 
-  const canPost = await Promise.all([
-    hasPlanFeature("post_1_job_listing").then(has => has && count < 1),
-    hasPlanFeature("post_3_job_listings").then(has => has && count < 3),
-    hasPlanFeature("post_15_job_listings").then(has => has && count < 15),
+  const [has1, has3, has15] = await Promise.all([
+    hasPlanFeature("post_1_job_listing"),
+    hasPlanFeature("post_3_job_listings"),
+    hasPlanFeature("post_15_job_listings"),
   ])
+
+  // If no organization plans/features are configured in Clerk, default to allowing up to 15 posts
+  if (!has1 && !has3 && !has15) {
+    return count >= 15
+  }
+
+  const canPost = [
+    has1 && count < 1,
+    has3 && count < 3,
+    has15 && count < 15,
+  ]
 
   return !canPost.some(Boolean)
 }
@@ -27,10 +38,20 @@ export async function hasReachedMaxFeaturedJobListings() {
 
   const count = await getFeaturedJobListingsCount(orgId)
 
-  const canFeature = await Promise.all([
-    hasPlanFeature("1_featured_job_listing").then(has => has && count < 1),
+  const [has1Featured, hasUnlimitedFeatured] = await Promise.all([
+    hasPlanFeature("1_featured_job_listing"),
     hasPlanFeature("unlimited_featured_jobs_listings"),
   ])
+
+  // If no organization plans/features are configured in Clerk, default to allowing up to 5 featured posts
+  if (!has1Featured && !hasUnlimitedFeatured) {
+    return count >= 5
+  }
+
+  const canFeature = [
+    has1Featured && count < 1,
+    hasUnlimitedFeatured,
+  ]
 
   return !canFeature.some(Boolean)
 }

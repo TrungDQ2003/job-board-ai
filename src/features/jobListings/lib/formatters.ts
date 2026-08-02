@@ -80,21 +80,22 @@ export function formatJobListingStatus(status: JobListingStatus) {
 }
 
 export function formatWage(wage: number, wageInterval: WageInterval, language: string = "en") {
-  const wageFormatter = new Intl.NumberFormat(language === "vi" ? "vi-VN" : "en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  })
+  // Safe manual formatting to avoid server-client hydration mismatches
+  const parts = wage.toString().split(".")
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, language === "vi" ? "." : ",")
+  const formattedWageVal = parts.join(language === "vi" ? "," : ".")
+
+  const wageString = language === "vi" ? `${formattedWageVal} ₫` : `₫${formattedWageVal}`
 
   switch (wageInterval) {
     case "hourly": {
-      return `${wageFormatter.format(wage)} / ${language === "vi" ? "giờ" : "hr"}`
+      return `${wageString} / ${language === "vi" ? "giờ" : "hr"}`
     }
     case "monthly": {
-      return `${wageFormatter.format(wage)} / ${language === "vi" ? "tháng" : "mo"}`
+      return `${wageString} / ${language === "vi" ? "tháng" : "mo"}`
     }
     case "yearly": {
-      return `${wageFormatter.format(wage)} / ${language === "vi" ? "năm" : "yr"}`
+      return `${wageString} / ${language === "vi" ? "năm" : "yr"}`
     }
     default:
       throw new Error(`Unknown wage interval: ${wageInterval satisfies never}`)

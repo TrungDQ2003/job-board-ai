@@ -1,4 +1,4 @@
-import { Avatar, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
   Card,
   CardContent,
@@ -16,7 +16,6 @@ import {
 } from "@/drizzle/schema"
 import { convertSearchParamsToString } from "@/lib/convertSearchParamsToString"
 import { cn } from "@/lib/utils"
-import { AvatarFallback } from "@radix-ui/react-avatar"
 import { and, desc, eq, ilike, or, SQL } from "drizzle-orm"
 import Link from "next/link"
 import { Suspense } from "react"
