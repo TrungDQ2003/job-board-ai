@@ -8,6 +8,7 @@ export const OrganizationTable = pgTable("organizations", {
   id: varchar().primaryKey(),
   name: varchar().notNull(),
   imageUrl: varchar(),
+  plan: varchar().notNull().default("starter"),
   createdAt,
   updatedAt,
 })

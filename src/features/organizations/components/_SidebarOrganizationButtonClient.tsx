@@ -19,6 +19,7 @@ import {
   CreditCardIcon,
   LogOutIcon,
   SettingsIcon,
+  Sparkles,
   UserIcon,
   UserRoundCogIcon,
 } from "lucide-react"
@@ -32,6 +33,7 @@ type User = {
 type Organization = {
   name: string
   imageUrl: string | null
+  plan?: string | null
 }
 
 export function SidebarOrganizationButtonClient({
@@ -74,6 +76,13 @@ export function SidebarOrganizationButtonClient({
         >
           <Building2Icon className="mr-1" /> {t("employer.manageOrganization")}
         </DropdownMenuItem>
+        {organization.plan === "starter" && (
+          <DropdownMenuItem asChild className="bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 hover:text-indigo-600 focus:bg-indigo-500/20 focus:text-indigo-600 font-semibold cursor-pointer">
+            <Link href="/employer/pricing">
+              <Sparkles className="mr-1 size-4" /> {t("employer.upgradePlan")}
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link href="/employer/user-settings">
             <UserRoundCogIcon className="mr-1" /> {t("employer.userSettings")}

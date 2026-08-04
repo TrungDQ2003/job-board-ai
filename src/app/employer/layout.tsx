@@ -1,4 +1,5 @@
 import { AsyncIf } from "@/components/AsyncIf"
+import { Button } from "@/components/ui/button"
 import { AppSidebar } from "@/components/sidebar/AppSidebar"
 import { SidebarNavMenuGroup } from "@/components/sidebar/SidebarNavMenuGroup"
 import {
@@ -40,8 +41,10 @@ export default function EmployerLayout({ children }: { children: ReactNode }) {
 }
 
 async function LayoutSuspense({ children }: { children: ReactNode }) {
-  const { orgId } = await getCurrentOrganization()
+  const { orgId, organization } = await getCurrentOrganization({ allData: true })
   if (orgId == null) return redirect("/organizations/select")
+
+  const currentPlan = (organization as { plan?: string } | undefined)?.plan ?? "starter"
 
   const { t } = await getServerTranslation()
 
@@ -64,6 +67,15 @@ async function LayoutSuspense({ children }: { children: ReactNode }) {
               <Suspense>
                 <JobListingMenu orgId={orgId} />
               </Suspense>
+              {currentPlan === "starter" && (
+                <div className="mt-6 px-3">
+                  <Button asChild className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md font-semibold text-xs py-2 h-auto cursor-pointer">
+                    <Link href="/employer/pricing">
+                      <Sparkles className="mr-1.5 size-3.5" /> {t("employer.upgradePlan")}
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </SidebarGroupContent>
           </SidebarGroup>
           <SidebarNavMenuGroup

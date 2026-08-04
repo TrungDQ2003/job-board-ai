@@ -22,17 +22,18 @@ export async function getCurrentUser({ allData = false } = {}) {
           )?.emailAddress
           if (email != null) {
             const { insertUser } = await import("@/features/users/db/users")
-            await insertUser({
+            const userData = {
               id: userId,
               name: `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() || "User",
               imageUrl: clerkUser.imageUrl,
               email: email,
               createdAt: new Date(clerkUser.createdAt),
               updatedAt: new Date(clerkUser.updatedAt),
-            })
+            }
+            await insertUser(userData)
             const { insertUserNotificationSettings } = await import("@/features/users/db/userNotificationSettings")
             await insertUserNotificationSettings({ userId })
-            user = await getUser(userId)
+            user = userData
           }
         }
       } catch (e) {
@@ -59,13 +60,15 @@ export async function getCurrentOrganization({ allData = false } = {}) {
         const clerkOrg = await client.organizations.getOrganization({ organizationId: orgId })
         if (clerkOrg != null) {
           const { insertOrganization } = await import("@/features/organizations/db/organizations")
-          await insertOrganization({
+          const orgData = {
             id: orgId,
             name: clerkOrg.name,
             imageUrl: clerkOrg.imageUrl,
+            plan: "starter" as const,
             createdAt: new Date(clerkOrg.createdAt),
             updatedAt: new Date(clerkOrg.updatedAt),
-          })
+          }
+          await insertOrganization(orgData)
           if (userId != null) {
             const { insertOrganizationUserSettings } = await import("@/features/organizations/db/organizationUserSettings")
             await insertOrganizationUserSettings({
@@ -73,7 +76,7 @@ export async function getCurrentOrganization({ allData = false } = {}) {
               organizationId: orgId,
             })
           }
-          organization = await getOrganization(orgId)
+          organization = orgData
         }
       } catch (e) {
         console.error("Clerk organization sync error:", e)

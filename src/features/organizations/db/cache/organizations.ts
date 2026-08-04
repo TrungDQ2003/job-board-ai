@@ -10,6 +10,10 @@ export function getOrganizationIdTag(id: string) {
 }
 
 export function revalidateOrganizationCache(id: string) {
-  revalidateTag(getOrganizationGlobalTag())
-  revalidateTag(getOrganizationIdTag(id))
+  try {
+    revalidateTag(getOrganizationGlobalTag())
+    revalidateTag(getOrganizationIdTag(id))
+  } catch (e) {
+    console.warn("revalidateOrganizationCache was called during render phase, skipping revalidation:", e)
+  }
 }

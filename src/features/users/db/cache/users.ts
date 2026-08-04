@@ -10,6 +10,10 @@ export function getUserIdTag(id: string) {
 }
 
 export function revalidateUserCache(id: string) {
-  revalidateTag(getUserGlobalTag())
-  revalidateTag(getUserIdTag(id))
+  try {
+    revalidateTag(getUserGlobalTag())
+    revalidateTag(getUserIdTag(id))
+  } catch (e) {
+    console.warn("revalidateUserCache was called during render phase, skipping revalidation:", e)
+  }
 }
