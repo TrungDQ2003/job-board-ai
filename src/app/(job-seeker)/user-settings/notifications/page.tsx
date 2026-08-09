@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm"
 import { cacheTag } from "next/dist/server/use-cache/cache-tag"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
+import { getServerTranslation } from "@/lib/i18n/getServerTranslation"
 
 export default function NotificationsPage() {
   return (
@@ -21,10 +22,11 @@ export default function NotificationsPage() {
 async function SuspendedComponent() {
   const { userId } = await getCurrentUser()
   if (userId == null) return notFound()
+  const { t } = await getServerTranslation()
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Notification Settings</h1>
+      <h1 className="text-2xl font-bold mb-6">{t("userSettings.notificationSettings")}</h1>
       <Card>
         <CardContent>
           <Suspense fallback={<LoadingSpinner />}>

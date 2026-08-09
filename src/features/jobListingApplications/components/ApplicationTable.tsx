@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { ChevronDownIcon, MoreHorizontalIcon } from "lucide-react"
+import { ChevronDownIcon, MoreHorizontalIcon, Edit2Icon } from "lucide-react"
 import { toast } from "sonner"
 import {
   updateJobListingApplicationRating,
@@ -38,6 +38,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { DataTableFacetedFilter } from "@/components/dataTable/DataTableFacetedFilter"
@@ -231,11 +237,48 @@ function Toolbar<T>({
           disabled={disabled}
           column={table.getColumn("rating")}
           title={t("employer.applicantRating")}
-          options={RATING_OPTIONS.map((rating, i) => ({
-            label: <RatingIcons rating={rating} />,
-            value: rating,
-            key: i,
-          }))}
+          options={[
+            {
+              label: <RatingIcons rating={10} />,
+              value: 10,
+              key: "10",
+            },
+            {
+              label: <RatingIcons rating={9} />,
+              value: 9,
+              key: "9",
+            },
+            {
+              label: <RatingIcons rating={8} />,
+              value: 8,
+              key: "8",
+            },
+            {
+              label: <RatingIcons rating={7} />,
+              value: 7,
+              key: "7",
+            },
+            {
+              label: <RatingIcons rating={6} />,
+              value: 6,
+              key: "6",
+            },
+            {
+              label: <RatingIcons rating={5} />,
+              value: 5,
+              key: "5",
+            },
+            {
+              label: <RatingIcons rating={4} />,
+              value: 4,
+              key: "4",
+            },
+            {
+              label: <RatingIcons rating={null} />,
+              value: null,
+              key: "null",
+            },
+          ]}
         />
       )}
       {hiddenRows > 0 && (
@@ -318,48 +361,136 @@ function RatingCell({
 }) {
   const [optimisticRating, setOptimisticRating] = useOptimistic(rating)
   const [isPending, startTransition] = useTransition()
+  const [open, setOpen] = useState(false)
+  const [customScore, setCustomScore] = useState<string>(
+    rating != null ? rating.toString() : ""
+  )
+  const { t } = useLanguage()
+
+  const handleUpdate = (newRating: number | null) => {
+    startTransition(async () => {
+      setOptimisticRating(newRating)
+      setOpen(false)
+      const res = await updateJobListingApplicationRating(
+        {
+          jobListingId,
+          userId,
+        },
+        newRating
+      )
+
+      if (res?.error) {
+        toast.error(res.message)
+      } else {
+        toast.success(
+          newRating != null
+            ? `Đã cập nhật điểm đánh giá: ${newRating}/10`
+            : "Đã xóa điểm đánh giá"
+        )
+      }
+    })
+  }
+
+  const handleCustomSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const num = parseInt(customScore, 10)
+    if (isNaN(num) || num < 1 || num > 10) {
+      toast.error("Vui lòng nhập điểm số hợp lệ từ 1 đến 10")
+      return
+    }
+    handleUpdate(num)
+  }
 
   if (!canUpdate) {
     return <RatingIcons rating={optimisticRating} />
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className={cn("-ml-3", isPending && "opacity-50")}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "group inline-flex items-center gap-1.5 p-1 rounded-md hover:bg-muted/60 transition-colors cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            isPending && "opacity-50"
+          )}
         >
           <RatingIcons rating={optimisticRating} />
-          <ChevronDownIcon />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        {RATING_OPTIONS.map(ratingValue => (
-          <DropdownMenuItem
-            key={ratingValue ?? "none"}
-            onClick={() => {
-              startTransition(async () => {
-                setOptimisticRating(ratingValue)
-                const res = await updateJobListingApplicationRating(
-                  {
-                    jobListingId,
-                    userId,
-                  },
-                  ratingValue
-                )
+          <Edit2Icon className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-80 p-4 space-y-4 shadow-xl border-border"
+        align="start"
+      >
+        <div className="space-y-1">
+          <h4 className="text-sm font-semibold tracking-tight">
+            {t("employer.applicantRating") || "Đánh giá ứng viên (ATS Score)"}
+          </h4>
+          <p className="text-xs text-muted-foreground">
+            Nhập điểm từ 1 đến 10 hoặc chọn nhanh mốc điểm phù hợp.
+          </p>
+        </div>
 
-                if (res?.error) {
-                  toast.error(res.message)
-                }
-              })
-            }}
-          >
-            <RatingIcons rating={ratingValue} className="text-inherit" />
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        {/* Quick presets */}
+        <div className="space-y-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Chọn nhanh:
+          </span>
+          <div className="grid grid-cols-4 gap-1.5">
+            {[10, 9, 8, 7, 6, 5, 4, 2].map(score => (
+              <Button
+                key={score}
+                type="button"
+                variant={optimisticRating === score ? "default" : "outline"}
+                size="sm"
+                className="h-8 text-xs font-medium"
+                onClick={() => handleUpdate(score)}
+              >
+                {score}/10
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Custom input */}
+        <form onSubmit={handleCustomSubmit} className="space-y-2 pt-2 border-t">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Tự nhập điểm (1 - 10):
+          </span>
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              min={1}
+              max={10}
+              step={1}
+              placeholder="VD: 8"
+              value={customScore}
+              onChange={e => setCustomScore(e.target.value)}
+              className="h-8 text-sm"
+            />
+            <Button type="submit" size="sm" className="h-8 text-xs shrink-0">
+              Lưu điểm
+            </Button>
+          </div>
+        </form>
+
+        {/* Reset / Unrated */}
+        {optimisticRating != null && (
+          <div className="pt-2 border-t">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => handleUpdate(null)}
+            >
+              Đặt lại (Chưa đánh giá)
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   )
 }
 

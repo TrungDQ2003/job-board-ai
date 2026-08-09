@@ -12,17 +12,17 @@ import { getCurrentUser } from "@/services/clerk/lib/getCurrentAuth"
 import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { getUserResumeIdTag } from "@/features/users/db/cache/userResumes"
 import { db } from "@/drizzle/db"
 import { UserResumeTable } from "@/drizzle/schema"
 import { eq } from "drizzle-orm"
-import { cacheTag } from "next/dist/server/use-cache/cache-tag"
-import { MarkdownRenderer } from "@/components/markdown/MarkdownRenderer"
+import { getServerTranslation } from "@/lib/i18n/getServerTranslation"
 
-export default function UserResumePage() {
+export default async function UserResumePage() {
+  const { t } = await getServerTranslation()
+
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6 px-4">
-      <h1 className="text-2xl font-bold">Upload Your Resume</h1>
+      <h1 className="text-2xl font-bold">{t("userSettings.uploadYourResume")}</h1>
       <Card>
         <CardContent>
           <DropzoneClient />
@@ -41,6 +41,7 @@ export default function UserResumePage() {
 async function ResumeDetails() {
   const { userId } = await getCurrentUser()
   if (userId == null) return notFound()
+  const { t } = await getServerTranslation()
 
   const userResume = await getUserResume(userId)
   if (userResume == null) return null
@@ -53,7 +54,7 @@ async function ResumeDetails() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          View Resume
+          {t("userSettings.viewResume")}
         </Link>
       </Button>
     </CardFooter>
@@ -63,6 +64,7 @@ async function ResumeDetails() {
 async function AISummaryCard() {
   const { userId } = await getCurrentUser()
   if (userId == null) return notFound()
+  const { t } = await getServerTranslation()
 
   const userResume = await getUserResume(userId)
   if (userResume == null || userResume.aiSummary == null) return null
@@ -70,10 +72,9 @@ async function AISummaryCard() {
   return (
     <Card>
       <CardHeader className="border-b">
-        <CardTitle>AI Summary</CardTitle>
+        <CardTitle>{t("userSettings.aiSummary")}</CardTitle>
         <CardDescription>
-          This is an AI-generated summary of your resume. This is used by
-          employers to quickly understand your qualifications and experience.
+          {t("userSettings.aiSummaryDesc")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -84,9 +85,6 @@ async function AISummaryCard() {
 }
 
 async function getUserResume(userId: string) {
-  "use cache"
-  cacheTag(getUserResumeIdTag(userId))
-
   return db.query.UserResumeTable.findFirst({
     where: eq(UserResumeTable.userId, userId),
   })

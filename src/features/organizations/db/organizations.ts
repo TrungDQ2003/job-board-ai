@@ -4,11 +4,14 @@ import { eq } from "drizzle-orm"
 import { revalidateOrganizationCache } from "./cache/organizations"
 
 export async function insertOrganization(
-  organization: typeof OrganizationTable.$inferInsert
+  organization: typeof OrganizationTable.$inferInsert,
+  { revalidate = true } = {}
 ) {
   await db.insert(OrganizationTable).values(organization).onConflictDoNothing()
 
-  revalidateOrganizationCache(organization.id)
+  if (revalidate) {
+    revalidateOrganizationCache(organization.id)
+  }
 }
 
 export async function updateOrganization(

@@ -30,9 +30,9 @@ export async function getCurrentUser({ allData = false } = {}) {
               createdAt: new Date(clerkUser.createdAt),
               updatedAt: new Date(clerkUser.updatedAt),
             }
-            await insertUser(userData)
+            await insertUser(userData, { revalidate: false })
             const { insertUserNotificationSettings } = await import("@/features/users/db/userNotificationSettings")
-            await insertUserNotificationSettings({ userId })
+            await insertUserNotificationSettings({ userId }, { revalidate: false })
             user = userData
           }
         }
@@ -68,13 +68,16 @@ export async function getCurrentOrganization({ allData = false } = {}) {
             createdAt: new Date(clerkOrg.createdAt),
             updatedAt: new Date(clerkOrg.updatedAt),
           }
-          await insertOrganization(orgData)
+          await insertOrganization(orgData, { revalidate: false })
           if (userId != null) {
             const { insertOrganizationUserSettings } = await import("@/features/organizations/db/organizationUserSettings")
-            await insertOrganizationUserSettings({
-              userId,
-              organizationId: orgId,
-            })
+            await insertOrganizationUserSettings(
+              {
+                userId,
+                organizationId: orgId,
+              },
+              { revalidate: false }
+            )
           }
           organization = orgData
         }

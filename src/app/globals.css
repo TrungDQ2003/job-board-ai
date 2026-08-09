@@ -154,3 +154,8 @@
     --basePageBg: var(--muted) !important;
   }
 }
+
+@utility h-screen-header {
+  height: calc(100dvh - 3.5rem);
+}
+

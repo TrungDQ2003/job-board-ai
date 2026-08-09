@@ -197,22 +197,43 @@ export async function getAiJobListingSearchResults(
   }
 
   const allListings = await getPublicJobListings()
-  const matchedListings = await getMatchingJobListings(
-    data.query,
-    allListings,
-    {
-      maxNumberOfJobs: 10,
-    }
-  )
 
-  if (matchedListings.length === 0) {
+  try {
+    const matchedListings = await getMatchingJobListings(
+      data.query,
+      allListings,
+      {
+        maxNumberOfJobs: 10,
+      }
+    )
+
+    if (matchedListings.length === 0) {
+      return {
+        error: true,
+        message: "Không tìm thấy công việc nào phù hợp với yêu cầu của bạn.",
+      }
+    }
+
+    return { error: false, jobIds: matchedListings }
+  } catch (err: any) {
+    console.error("AI Search Error:", err)
+    if (
+      err?.message?.includes("Quota exceeded") ||
+      err?.message?.includes("quota") ||
+      err?.message?.includes("429")
+    ) {
+      return {
+        error: true,
+        message:
+          "Hệ thống AI đang tạm thời vượt quá giới hạn lượt gọi miễn phí (Rate Limit). Vui lòng thử lại sau khoảng 30 - 60 giây!",
+      }
+    }
+
     return {
       error: true,
-      message: "No jobs match your search criteria",
+      message: "Có lỗi xảy ra trong quá trình tìm kiếm bằng AI. Vui lòng thử lại.",
     }
   }
-
-  return { error: false, jobIds: matchedListings }
 }
 
 async function getJobListing(id: string, orgId: string) {

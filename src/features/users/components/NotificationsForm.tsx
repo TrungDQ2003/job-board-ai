@@ -20,6 +20,7 @@ import { LoadingSwap } from "@/components/LoadingSwap"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { updateUserNotificationSettings } from "../actions/userNotificationSettingsActions"
+import { useLanguage } from "@/context/LanguageContext"
 
 export function NotificationsForm({
   notificationSettings,
@@ -29,6 +30,7 @@ export function NotificationsForm({
     "newJobEmailNotifications" | "aiPrompt"
   >
 }) {
+  const { t } = useLanguage()
   const form = useForm({
     resolver: zodResolver(userNotificationSettingsSchema),
     defaultValues: notificationSettings ?? {
@@ -62,10 +64,9 @@ export function NotificationsForm({
               <FormItem>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <FormLabel>Daily Email Notifications</FormLabel>
+                    <FormLabel>{t("userSettings.dailyEmailNotifications")}</FormLabel>
                     <FormDescription>
-                      Receive emails about new job listings that match your
-                      interests
+                      {t("userSettings.dailyEmailNotificationsDesc")}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -85,11 +86,9 @@ export function NotificationsForm({
               render={({ field }) => (
                 <FormItem>
                   <div className="space-y-0.5">
-                    <FormLabel>Filter Prompt</FormLabel>
+                    <FormLabel>{t("userSettings.filterPrompt")}</FormLabel>
                     <FormDescription>
-                      Our AI will use this prompt to filter job listings and
-                      only send you notifications for jobs that match your
-                      criteria.
+                      {t("userSettings.filterPromptDesc")}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -97,12 +96,11 @@ export function NotificationsForm({
                       {...field}
                       value={field.value ?? ""}
                       className="min-h-32"
-                      placeholder="Describe the jobs you're interested in. For example: 'I'm looking for remote frontend development positions that use React and pay at least $100k per year.'"
+                      placeholder={t("userSettings.filterPromptPlaceholder")}
                     />
                   </FormControl>
                   <FormDescription>
-                    Leave blank to receive notifications of all new job
-                    listings.
+                    {t("userSettings.filterPromptHelp")}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -116,7 +114,7 @@ export function NotificationsForm({
           className="w-full"
         >
           <LoadingSwap isLoading={form.formState.isSubmitting}>
-            Save Notification Settings
+            {t("userSettings.saveNotificationSettings")}
           </LoadingSwap>
         </Button>
       </form>

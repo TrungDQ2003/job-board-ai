@@ -10,6 +10,8 @@ const isPublicRoute = createRouteMatcher([
   "/ai-search",
 ])
 
+const isInngestRoute = createRouteMatcher(["/api/inngest(.*)"])
+
 const aj = arcjet({
   key: env.ARCJET_KEY,
   rules: [
@@ -27,10 +29,12 @@ const aj = arcjet({
 })
 
 export default clerkMiddleware(async (auth, req) => {
-  const decision = await aj.protect(req)
+  if (!isInngestRoute(req)) {
+    const decision = await aj.protect(req)
 
-  if (decision.isDenied()) {
-    return new Response(null, { status: 403 })
+    if (decision.isDenied()) {
+      return new Response(null, { status: 403 })
+    }
   }
 
   if (!isPublicRoute(req)) {

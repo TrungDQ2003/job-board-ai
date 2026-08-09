@@ -75,9 +75,9 @@ export function NewQuestionClientPage({
   }, [data])
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full mx-w-[2000px] mx-auto flex-grow h-screen-header">
-      <div className="container flex gap-4 mt-4 items-center justify-between">
-        <div className="flex-grow basis-0">
+    <div className="flex flex-col w-full h-[calc(100vh-3.5rem)] overflow-hidden">
+      <div className="w-full px-6 py-3 border-b flex items-center justify-between gap-4 bg-card/40 backdrop-blur-xs shrink-0">
+        <div className="flex items-center gap-3">
           <BackLink href={`/app/job-infos/${jobInfo.id}`}>
             {jobInfo.name}
           </BackLink>
@@ -108,16 +108,17 @@ export function NewQuestionClientPage({
             generateQuestion(difficulty, { body: { jobInfoId: jobInfo.id } })
           }}
         />
-        <div className="flex-grow hidden md:block" />
       </div>
-      <QuestionContainer
-        t={t}
-        question={question}
-        feedback={feedback}
-        answer={answer}
-        status={status}
-        setAnswer={setAnswer}
-      />
+      <div className="flex-1 w-full overflow-hidden">
+        <QuestionContainer
+          t={t}
+          question={question}
+          feedback={feedback}
+          answer={answer}
+          status={status}
+          setAnswer={setAnswer}
+        />
+      </div>
     </div>
   )
 }
@@ -138,49 +139,75 @@ function QuestionContainer({
   setAnswer: (value: string) => void
 }) {
   return (
-    <ResizablePanelGroup direction="horizontal" className="flex-grow border-t">
-      <ResizablePanel id="question-and-feedback" defaultSize={50} minSize={5}>
-        <ResizablePanelGroup direction="vertical" className="flex-grow">
-          <ResizablePanel id="question" defaultSize={25} minSize={5}>
-            <ScrollArea className="h-full min-w-48 *:h-full">
+    <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+      <ResizablePanel id="question-and-feedback" defaultSize={50} minSize={20}>
+        {feedback ? (
+          <ResizablePanelGroup direction="vertical" className="h-full w-full">
+            <ResizablePanel id="question" defaultSize={40} minSize={15}>
+              <div className="flex flex-col h-full border-b">
+                <div className="px-6 py-2.5 border-b bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("questionsPage.title") || "Câu hỏi"}
+                </div>
+                <ScrollArea className="flex-1 h-full">
+                  <div className="p-6 prose dark:prose-invert max-w-none text-base leading-relaxed">
+                    <MarkdownRenderer>{question}</MarkdownRenderer>
+                  </div>
+                </ScrollArea>
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel id="feedback" defaultSize={60} minSize={20}>
+              <div className="flex flex-col h-full bg-muted/10">
+                <div className="px-6 py-2.5 border-b bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("interviewsPage.feedback") || "Đánh giá & Nhận xét của AI"}
+                </div>
+                <ScrollArea className="flex-1 h-full">
+                  <div className="p-6 prose dark:prose-invert max-w-none text-base leading-relaxed">
+                    <MarkdownRenderer>{feedback}</MarkdownRenderer>
+                  </div>
+                </ScrollArea>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <div className="flex flex-col h-full">
+            <div className="px-6 py-2.5 border-b bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("questionsPage.title") || "Câu hỏi"}
+            </div>
+            <ScrollArea className="flex-1 h-full">
               {status === "init" && question == null ? (
-                <p className="text-base md:text-lg flex items-center justify-center h-full p-6 text-center text-muted-foreground">
-                  {t("questionsPage.startInstruction")}
-                </p>
+                <div className="flex flex-col items-center justify-center min-h-[400px] h-full p-8 text-center text-muted-foreground">
+                  <p className="text-base md:text-lg max-w-md">
+                    {t("questionsPage.startInstruction")}
+                  </p>
+                </div>
               ) : (
                 question && (
-                  <MarkdownRenderer className="p-6">
-                    {question}
-                  </MarkdownRenderer>
+                  <div className="p-6 md:p-8 prose dark:prose-invert max-w-none text-base md:text-lg leading-relaxed font-normal">
+                    <MarkdownRenderer>{question}</MarkdownRenderer>
+                  </div>
                 )
               )}
             </ScrollArea>
-          </ResizablePanel>
-          {feedback && (
-            <>
-              <ResizableHandle withHandle />
-              <ResizablePanel id="feedback" defaultSize={75} minSize={5}>
-                <ScrollArea className="h-full min-w-48 *:h-full">
-                  <MarkdownRenderer className="p-6">
-                    {feedback}
-                  </MarkdownRenderer>
-                </ScrollArea>
-              </ResizablePanel>
-            </>
-          )}
-        </ResizablePanelGroup>
+          </div>
+        )}
       </ResizablePanel>
       <ResizableHandle withHandle />
-      <ResizablePanel id="answer" defaultSize={50} minSize={5}>
-        <ScrollArea className="h-full min-w-48 *:h-full">
-          <Textarea
-            disabled={status !== "awaiting-answer"}
-            onChange={e => setAnswer(e.target.value)}
-            value={answer ?? ""}
-            placeholder={t("questionsPage.typePlaceholder")}
-            className="w-full h-full resize-none border-none rounded-none focus-visible:ring focus-visible:ring-inset !text-base p-6"
-          />
-        </ScrollArea>
+      <ResizablePanel id="answer" defaultSize={50} minSize={20}>
+        <div className="flex flex-col h-full bg-background">
+          <div className="px-6 py-2.5 border-b bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {t("questionsPage.answer") || "Câu trả lời của bạn"}
+          </div>
+          <div className="flex-1 h-full relative">
+            <Textarea
+              disabled={status !== "awaiting-answer"}
+              onChange={e => setAnswer(e.target.value)}
+              value={answer ?? ""}
+              placeholder={t("questionsPage.typePlaceholder")}
+              className="w-full h-full resize-none border-none rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 text-base leading-relaxed p-6 md:p-8 shadow-none focus:outline-none"
+            />
+          </div>
+        </div>
       </ResizablePanel>
     </ResizablePanelGroup>
   )

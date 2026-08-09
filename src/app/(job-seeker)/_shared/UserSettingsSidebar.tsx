@@ -8,12 +8,12 @@ export function UserSettingsSidebar() {
         {
           href: "/user-settings/notifications",
           icon: <BellIcon />,
-          label: "Notifications",
+          label: "userSettings.notifications",
         },
         {
           href: "/user-settings/resume",
           icon: <FileUserIcon />,
-          label: "Resume",
+          label: "userSettings.resume",
         },
       ]}
     />

@@ -135,20 +135,15 @@ function JobListingCard({
 }
 
 function RatingIcons({ rating }: { rating: number | null }) {
-  if (rating == null || rating < 1 || rating > 5) {
-    return "Unrated"
+  if (rating == null || rating < 1 || rating > 10) {
+    return <span className="text-gray-500 font-medium">Unrated</span>
   }
 
-  const stars: ReactNode[] = []
-  for (let i = 1; i <= 5; i++) {
-    stars.push(
-      <span key={i} className="w-3 -mb-[7px] mr-0.5">
-        {rating >= i ? "★" : "☆"}
-      </span>
-    )
-  }
-
-  return stars
+  return (
+    <span className="font-semibold text-emerald-600">
+      🎯 {rating}/10
+    </span>
+  )
 }
 
 DailyApplicationEmail.PreviewProps = {

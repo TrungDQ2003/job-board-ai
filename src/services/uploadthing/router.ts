@@ -28,6 +28,7 @@ export const customFileRouter = {
       return { userId }
     })
     .onUploadComplete(async ({ metadata, file }) => {
+      console.log("[UploadThing] onUploadComplete triggered. File:", file.name, "Key:", file.key, "Url:", file.ufsUrl)
       const { userId } = metadata
       const resumeFileKey = await getUserResumeFileKey(userId)
 
@@ -35,12 +36,22 @@ export const customFileRouter = {
         resumeFileUrl: file.ufsUrl,
         resumeFileKey: file.key,
       })
+      console.log("[UploadThing] Saved new resume to DB for user:", userId)
 
-      if (resumeFileKey != null) {
-        await uploadthing.deleteFiles(resumeFileKey)
+      if (resumeFileKey != null && resumeFileKey !== file.key) {
+        try {
+          console.log("[UploadThing] Deleting previous resume file:", resumeFileKey)
+          await uploadthing.deleteFiles(resumeFileKey)
+        } catch (e) {
+          console.error("Error deleting old resume:", e)
+        }
       }
 
-      await inngest.send({ name: "app/resume.uploaded", user: { id: userId } })
+      try {
+        await inngest.send({ name: "app/resume.uploaded", user: { id: userId } })
+      } catch (e) {
+        console.error("Error sending inngest event:", e)
+      }
 
       return { message: "Resume uploaded successfully" }
     }),

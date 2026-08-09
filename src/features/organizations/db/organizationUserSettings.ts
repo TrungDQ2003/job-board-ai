@@ -4,14 +4,17 @@ import { revalidateOrganizationUserSettingsCache } from "./cache/organizationUse
 import { and, eq } from "drizzle-orm"
 
 export async function insertOrganizationUserSettings(
-  settings: typeof OrganizationUserSettingsTable.$inferInsert
+  settings: typeof OrganizationUserSettingsTable.$inferInsert,
+  { revalidate = true } = {}
 ) {
   await db
     .insert(OrganizationUserSettingsTable)
     .values(settings)
     .onConflictDoNothing()
 
-  revalidateOrganizationUserSettingsCache(settings)
+  if (revalidate) {
+    revalidateOrganizationUserSettingsCache(settings)
+  }
 }
 
 export async function updateOrganizationUserSettings(

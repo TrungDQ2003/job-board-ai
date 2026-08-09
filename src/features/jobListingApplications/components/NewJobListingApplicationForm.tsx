@@ -18,12 +18,14 @@ import { toast } from "sonner"
 import { createJobListingApplication } from "../actions/actions"
 import { newJobListingApplicationSchema } from "../actions/schemas"
 import { Button } from "@/components/ui/button"
+import { useLanguage } from "@/context/LanguageContext"
 
 export function NewJobListingApplicationForm({
   jobListingId,
 }: {
   jobListingId: string
 }) {
+  const { t } = useLanguage()
   const form = useForm({
     resolver: zodResolver(newJobListingApplicationSchema),
     defaultValues: { coverLetter: "" },
@@ -50,11 +52,11 @@ export function NewJobListingApplicationForm({
           control={form.control}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Cover Letter</FormLabel>
+              <FormLabel>{t("jobDetails.coverLetter")}</FormLabel>
               <FormControl>
                 <MarkdownEditor {...field} markdown={field.value ?? ""} />
               </FormControl>
-              <FormDescription>Optional</FormDescription>
+              <FormDescription>{t("jobDetails.optional")}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -66,7 +68,7 @@ export function NewJobListingApplicationForm({
           className="w-full"
         >
           <LoadingSwap isLoading={form.formState.isSubmitting}>
-            Apply
+            {t("jobDetails.apply")}
           </LoadingSwap>
         </Button>
       </form>

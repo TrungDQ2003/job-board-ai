@@ -56,14 +56,18 @@ export async function createJobListingApplication(
     ...data,
   })
 
-  await inngest.send({
-    name: "app/jobListingApplication.created",
-    data: { jobListingId, userId },
-  })
+  try {
+    await inngest.send({
+      name: "app/jobListingApplication.created",
+      data: { jobListingId, userId },
+    })
+  } catch (e) {
+    console.error("Inngest send event error (Run 'npm run inngest' for local dev):", e)
+  }
 
   return {
     error: false,
-    message: "Your application was successfully submitted",
+    message: "Đơn ứng tuyển của bạn đã được gửi thành công!",
   }
 }
 
@@ -132,14 +136,14 @@ export async function updateJobListingApplicationRating(
   const { success, data: rating } = z
     .number()
     .min(1)
-    .max(5)
+    .max(10)
     .nullish()
     .safeParse(unsafeRating)
 
   if (!success) {
     return {
       error: true,
-      message: "Invalid rating",
+      message: "Điểm đánh giá không hợp lệ (Phải từ 1 đến 10)",
     }
   }
 
@@ -198,9 +202,6 @@ async function getJobListing(id: string) {
 }
 
 async function getUserResume(userId: string) {
-  "use cache"
-  cacheTag(getUserResumeIdTag(userId))
-
   return db.query.UserResumeTable.findFirst({
     where: eq(UserResumeTable.userId, userId),
     columns: { userId: true },

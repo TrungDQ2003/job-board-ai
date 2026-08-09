@@ -19,6 +19,7 @@ import {
   UserIcon,
 } from "lucide-react"
 import Link from "next/link"
+import { useLanguage } from "@/context/LanguageContext"
 
 type User = {
   name: string
@@ -29,6 +30,7 @@ type User = {
 export function SidebarUserButtonClient({ user }: { user: User }) {
   const { isMobile, setOpenMobile } = useSidebar()
   const { openUserProfile } = useClerk()
+  const { t } = useLanguage()
 
   return (
     <DropdownMenu>
@@ -57,17 +59,17 @@ export function SidebarUserButtonClient({ user }: { user: User }) {
             setOpenMobile(false)
           }}
         >
-          <UserIcon className="mr-1" /> Profile
+          <UserIcon className="mr-1" /> {t("userSettings.profile")}
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/user-settings/notifications">
-            <SettingsIcon className="mr-1" /> Settings
+            <SettingsIcon className="mr-1" /> {t("userSettings.settings")}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <SignOutButton>
           <DropdownMenuItem>
-            <LogOutIcon className="mr-1" /> Log Out
+            <LogOutIcon className="mr-1" /> {t("userSettings.logOut")}
           </DropdownMenuItem>
         </SignOutButton>
       </DropdownMenuContent>
